@@ -5,12 +5,15 @@ from .validation_protocols import (
     ColumnValidator,
     RangeValidator,
     ExpressionValidator,
-    CompositeValidator
+    CompositeValidator,
+    ConditionalValidator
+    
 )
 
 __all__ = [
     'ColumnValidator',
     'RangeValidator', 
     'ExpressionValidator',
-    'CompositeValidator'
+    'CompositeValidator',
+    'ConditionalValidator'
 ]

@@ -209,7 +209,7 @@ class ConditionalRule(BaseCondition):
     def to_dict(self) -> Dict[str, Any]:
         return {
             "type": self.type,
-            "if": self.if_.to_dict(),
+            "if_": self.if_.to_dict(),
             "then": self.then.to_dict()
         }
     

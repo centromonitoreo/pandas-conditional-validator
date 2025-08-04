@@ -3,7 +3,6 @@ Condiciones compuestas que combinan múltiples validaciones
 """
 import pandas as pd
 from .base import ValidatedCondition
-from ..services.factory import ConditionValidatorFactory
 
 class CompositeCondition(ValidatedCondition):
     """Condición compuesta que combina múltiples condiciones con operadores lógicos"""
@@ -14,34 +13,28 @@ class CompositeCondition(ValidatedCondition):
             "OR": self._or_operation,
             "NOT": self._not_operation
         }
-        self.factory = ConditionValidatorFactory()
 
     def validate_condition(self, df: pd.DataFrame, conditions: list, operator: str = "AND") -> pd.Series:
         """Combina múltiples condiciones con el operador especificado."""
+        # Import here to avoid circular import
+        from ..services.factory import ConditionValidatorFactory
+        
         self.validate_input(df)
-        self._validate_conditions(conditions)
         self._validate_operator(operator)
         
         if not conditions:
             raise ValueError("La lista de condiciones no puede estar vacía")
         
+        factory = ConditionValidatorFactory()
         resolved_conditions = []
         for condition in conditions:
             condition_type = condition['type']
-            sub_validator = self.factory.create_validator(condition_type)
-            resolved_conditions.append(sub_validator.validate_condition(df, **condition['params']))
+            sub_validator = factory.create_validator(condition_type)
+            condition.pop('type', None)
+            resolved_conditions.append(sub_validator.validate_condition(df, **condition))
         
         return self._operators[operator.upper()](resolved_conditions)
     
-    def _validate_conditions(self, conditions: list) -> None:
-        if not isinstance(conditions, list):
-            raise ValueError("Las condiciones deben ser una lista")
-        
-        for i, condition in enumerate(conditions):
-            if not isinstance(condition, pd.Series):
-                raise ValueError(f"La condición {i} debe ser una Serie de pandas")
-            if not pd.api.types.is_bool_dtype(condition):
-                raise ValueError(f"La condición {i} debe contener valores booleanos")
     
     def _validate_operator(self, operator: str) -> None:
         if operator.upper() not in self._operators:

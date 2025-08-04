@@ -13,6 +13,7 @@ from .comparison import (
 from .range import BetweenCondition
 from .expression import ExpressionCondition
 from .composite import CompositeCondition
+from .conditional import ConditionalCondition
 
 __all__ = [
     'ValidatedCondition',
@@ -24,5 +25,6 @@ __all__ = [
     'NotEqualCondition',
     'BetweenCondition',
     'ExpressionCondition',
-    'CompositeCondition'
+    'CompositeCondition',
+    'ConditionalCondition'
 ]

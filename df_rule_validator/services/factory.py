@@ -17,7 +17,7 @@ from ..conditions import (
     EqualCondition,
     NotEqualCondition,
     CompositeCondition,
-    ValidatedCondition
+    ConditionalCondition
 )
 
 
@@ -33,7 +33,8 @@ class ConditionValidatorFactory:
         "less_or_equal": LessOrEqualCondition,
         "equal": EqualCondition,
         "not_equal": NotEqualCondition,
-        "composite": CompositeCondition
+        "composite": CompositeCondition,
+        "conditional": ConditionalCondition
     }
     
     @classmethod

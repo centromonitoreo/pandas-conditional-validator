@@ -56,3 +56,15 @@ class CompositeValidator(Protocol):
     def get_condition_type(self) -> str:
         """Retorna el tipo de condición"""
         ...
+
+@runtime_checkable
+class ConditionalValidator(Protocol):
+    """Protocolo para validadores que pueden ser condicionales"""
+    
+    def validate_condition(self, df: pd.DataFrame, if_: dict, then_: dict) -> pd.Series:
+        """Valida una condición sobre el DataFrame"""
+        ...
+    
+    def get_condition_type(self) -> str:
+        """Retorna el tipo de condición"""
+        ...
