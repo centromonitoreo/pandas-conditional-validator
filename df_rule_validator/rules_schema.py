@@ -1,140 +1,344 @@
-from typing import List, Union, Optional, Literal, Dict, Any
-from pydantic import BaseModel, Field, field_validator, model_validator
+"""
+Versión refactorizada aplicando principios SOLID
+"""
+from typing import List, Union, Optional, Literal, Dict, Any, Protocol
+from pydantic import BaseModel, Field, field_validator
+from abc import ABC, abstractmethod
 import yaml
 import re
 
 
-class SimpleCondition(BaseModel):
-    type: Literal["greater_than", "greater_or_equal", "less_or_equal", "less_than", "between", "expression", "conditional"]
-    col: Optional[str] = None
-    value: Optional[Union[float, str]] = None  # Ahora puede ser string para parámetros
-    min: Optional[Union[float, str]] = None
-    max: Optional[Union[float, str]] = None
-    expr: Optional[str] = None
-    operator: Optional[Literal[">", "<", ">=", "<=", "==", "!="]] = None
-   
-class CompositeCondition(BaseModel):
+
+class ConditionProtocol(Protocol):
+    """Protocolo que define la interfaz común para todas las condiciones"""
+    type: str
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convierte la condición a diccionario"""
+        ...
+
+
+class ConditionFactory(Protocol):
+    """Factory para crear condiciones desde diccionarios"""
+    
+    @abstractmethod
+    def create_condition(self, data: Dict[str, Any]) -> ConditionProtocol:
+        """Crea una condición desde un diccionario"""
+        ...
+
+
+
+class ConditionValidator:
+    """Responsabilidad única: validar datos de condiciones"""
+    
+    @staticmethod
+    def validate_required_field(data: Dict[str, Any], field: str, context: str) -> None:
+        if field not in data:
+            raise ValueError(f"El campo '{field}' es obligatorio en {context}.")
+    
+    @staticmethod
+    def validate_field_type(value: Any, expected_type: type, field: str, context: str) -> None:
+        if not isinstance(value, expected_type):
+            raise ValueError(f"El campo '{field}' debe ser de tipo {expected_type.__name__} en {context}.")
+    
+    @staticmethod
+    def validate_condition_type(data: Dict[str, Any]) -> None:
+        if "type" not in data:
+            raise ValueError("Cada condición debe tener un campo 'type'.")
+
+
+# 3. OPEN/CLOSED: Base abstracta para condiciones
+class BaseCondition(BaseModel, ABC):
+    """Clase base abstracta para todas las condiciones"""
+    type: str
+    
+    @abstractmethod
+    def to_dict(self) -> Dict[str, Any]:
+        """Convierte la condición a diccionario"""
+        pass
+    
+    @classmethod
+    @abstractmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "BaseCondition":
+        """Crea una instancia desde un diccionario"""
+        pass
+
+
+# 4. INTERFACE SEGREGATION: Condiciones específicas con interfaces mínimas
+class ComparisonCondition(BaseCondition):
+    """Condición de comparación simple"""
+    type: Literal["greater_than", "greater_or_equal", "less_or_equal", "less_than"]
+    col: str
+    value: Union[float, str]
+    
+    def to_dict(self) -> Dict[str, Any]:
+        return {"type": self.type, "col": self.col, "value": self.value}
+    
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "ComparisonCondition":
+        validator = ConditionValidator()
+        validator.validate_required_field(data, "col", "ComparisonCondition")
+        validator.validate_required_field(data, "value", "ComparisonCondition")
+        validator.validate_required_field(data, "type", "ComparisonCondition")
+        
+        return cls(**data)
+
+
+class RangeCondition(BaseCondition):
+    """Condición de rango"""
+    type: Literal["between"]
+    col: str
+    min: Union[float, str]
+    max: Union[float, str]
+    
+    def to_dict(self) -> Dict[str, Any]:
+        return {"type": self.type, "col": self.col, "min": self.min, "max": self.max}
+    
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "RangeCondition":
+        validator = ConditionValidator()
+        validator.validate_required_field(data, "col", "RangeCondition")
+        validator.validate_required_field(data, "min", "RangeCondition")
+        validator.validate_required_field(data, "max", "RangeCondition")
+        
+        return cls(**data)
+
+
+class ExpressionCondition(BaseCondition):
+    """Condición de expresión"""
+    type: Literal["expression"]
+    expr: str
+    operator: Literal[">", "<", ">=", "<=", "==", "!="]
+    value: Union[float, str]
+    
+    def to_dict(self) -> Dict[str, Any]:
+        return {"type": self.type, "expr": self.expr, "operator": self.operator, "value": self.value}
+    
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "ExpressionCondition":
+        validator = ConditionValidator()
+        validator.validate_required_field(data, "expr", "ExpressionCondition")
+        validator.validate_required_field(data, "operator", "ExpressionCondition")
+        validator.validate_required_field(data, "value", "ExpressionCondition")
+        
+        return cls(**data)
+
+
+# 5. SINGLE RESPONSIBILITY: Factory específico para crear condiciones
+class ConcreteConditionFactory:
+    """Factory concreto para crear condiciones simples"""
+    
+    _condition_map = {
+        "greater_than": ComparisonCondition,
+        "greater_or_equal": ComparisonCondition,
+        "less_or_equal": ComparisonCondition,
+        "less_than": ComparisonCondition,
+        "between": RangeCondition,
+        "expression": ExpressionCondition,
+    }
+    
+    def create_condition(self, data: Dict[str, Any]) -> BaseCondition:
+        ConditionValidator.validate_condition_type(data)
+        
+        condition_type = data["type"]
+        if condition_type not in self._condition_map:
+            raise ValueError(f"Tipo de condición no soportado: {condition_type}")
+        
+        condition_class = self._condition_map[condition_type]
+        return condition_class.from_dict(data)
+
+
+# Mantener compatibilidad con SimpleCondition original
+SimpleCondition = Union[ComparisonCondition, RangeCondition, ExpressionCondition]
+
+
+class CompositeCondition(BaseCondition):
+    """Condición compuesta con mejor separación de responsabilidades"""
     type: Literal["composite"]
     operator: Literal["AND", "OR"]
-    conditions: List[Union["SimpleCondition", "CompositeCondition"]]
-
+    conditions: List[Union[SimpleCondition, "CompositeCondition"]]
+    
+    def __init__(self, **data):
+        super().__init__(**data)
+        
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "type": self.type,
+            "operator": self.operator,
+            "conditions": [cond.to_dict() for cond in self.conditions]
+        }
+    
     @classmethod
-    def from_dict(cls, **kwargs) -> "CompositeCondition":
-        if not "operator" in kwargs:
-            raise ValueError("El campo 'operator' es obligatorio en CompositeCondition.")
+    def from_dict(cls, data: Dict[str, Any]) -> "CompositeCondition":
+        validator = ConditionValidator()
+        factory = ConcreteConditionFactory()
         
-        if not "conditions" in kwargs:
-            raise ValueError("El campo 'conditions' es obligatorio en CompositeCondition.")
+        # Validaciones específicas
+        validator.validate_required_field(data, "operator", "CompositeCondition")
+        validator.validate_required_field(data, "conditions", "CompositeCondition")
+        validator.validate_field_type(data["conditions"], list, "conditions", "CompositeCondition")
         
-        if not isinstance(kwargs["conditions"], list):
-            raise ValueError("El campo 'conditions' debe ser una lista de condiciones.")
-        
-        # Validar que todas las condiciones sean del tipo correcto
-        for cond in kwargs["conditions"]:
-            if isinstance(cond, dict):
-                if "type" not in cond:
-                    raise ValueError("Cada condición debe tener un campo 'type'.")
-                elif cond["type"] == "composite":
-                    cond = CompositeCondition.from_dict(**cond)
+        # Procesar condiciones anidadas
+        processed_conditions = []
+        for cond_data in data["conditions"]:
+            if isinstance(cond_data, dict):
+                if cond_data.get("type") == "composite":
+                    processed_conditions.append(cls.from_dict(cond_data))
                 else:
-                    cond = SimpleCondition(**cond)
-            elif not isinstance(cond, (SimpleCondition, CompositeCondition)):
-                raise ValueError("Las condiciones deben ser instancias de SimpleCondition o CompositeCondition.")
+                    processed_conditions.append(factory.create_condition(cond_data))
+            else:
+                processed_conditions.append(cond_data)
         
-        return cls(type = kwargs['type'],operator=kwargs["operator"], conditions=kwargs["conditions"])
+        return cls(
+            type=data["type"],
+            operator=data["operator"],
+            conditions=processed_conditions
+        )
 
 
+# Actualizar referencias
 CompositeCondition.model_rebuild()
 
-class ConditionalRule(BaseModel):
+
+class ConditionalRule(BaseCondition):
+    """Regla condicional con mejor separación de responsabilidades"""
     type: Literal["conditional"]
     if_: Union[SimpleCondition, CompositeCondition] = Field(..., alias="if")
     then: Union[SimpleCondition, CompositeCondition]
-
+    
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "type": self.type,
+            "if": self.if_.to_dict(),
+            "then": self.then.to_dict()
+        }
+    
     @classmethod
-    def from_dict(cls, **kwargs) -> "ConditionalRule":
-        if not "if" in kwargs:
-            raise ValueError("El campo 'if' es obligatorio en ConditionalRule.")
+    def from_dict(cls, data: Dict[str, Any]) -> "ConditionalRule":
+        validator = ConditionValidator()
+        factory = ConcreteConditionFactory()
         
-        if not "then" in kwargs:
-            raise ValueError("El campo 'then' es obligatorio en ConditionalRule.")
+        validator.validate_required_field(data, "if", "ConditionalRule")
+        validator.validate_required_field(data, "then", "ConditionalRule")
         
-        data_if = kwargs["if"]
-        if not isinstance(data_if, dict):
-            raise ValueError("El campo 'if' debe ser un diccionario con la estructura de una condición.")
+        # Procesar condición 'if'
+        if_data = data["if"]
+        validator.validate_field_type(if_data, dict, "if", "ConditionalRule")
         
-        if "type" not in data_if:
-            raise ValueError("El campo 'if' debe contener el tipo de condición ('type').")
-        
-        elif data_if["type"] == "composite":
-            kwargs["if"] = CompositeCondition.from_dict(**data_if)
+        if if_data.get("type") == "composite":
+            if_condition = CompositeCondition.from_dict(if_data)
         else:
-            kwargs["if"] = SimpleCondition(**data_if)
-
-        if isinstance(kwargs["then"], dict):
-            if "type" not in kwargs["then"]:
-                raise ValueError("El campo 'then' debe contener el tipo de condición ('type').")
-            elif kwargs["then"]["type"] == "composite":
-                kwargs["then"] = CompositeCondition.from_dict(**kwargs["then"])
-            else:
-                kwargs["then"] = SimpleCondition(**kwargs["then"])
+            if_condition = factory.create_condition(if_data)
         
-        return cls(**kwargs)    
+        # Procesar condición 'then'
+        then_data = data["then"]
+        if isinstance(then_data, dict):
+            if then_data.get("type") == "composite":
+                then_condition = CompositeCondition.from_dict(then_data)
+            else:
+                then_condition = factory.create_condition(then_data)
+        else:
+            then_condition = then_data
+        
+        return cls(**{"if": if_condition, "then": then_condition, "type": data["type"]})
 
+
+# Tipo unión actualizado
 RuleType = Union[SimpleCondition, CompositeCondition, ConditionalRule]
 
+
+class RuleValidator:
+    """Responsabilidad única: validar reglas paramétricas"""
+    
+    @staticmethod
+    def validate_rule_name(name: str) -> str:
+        if not re.match(r"^[a-zA-Z_][a-zA-Z0-9_]*$", name):
+            raise ValueError(
+                "El nombre de la regla debe comenzar con una letra o guion bajo y "
+                "contener solo letras, números y guiones bajos."
+            )
+        return name
+
+
 class ParametricRule(BaseModel):
+    """Regla paramétrica con validación separada"""
     name: str
     condition: RuleType
-
+    
     @field_validator("name", mode="before")
     def validate_name(cls, v: str) -> str:
-        if not re.match(r"^[a-zA-Z_][a-zA-Z0-9_]*$", v):
-            raise ValueError("El nombre de la regla debe comenzar con una letra o guion bajo y contener solo letras, números y guiones bajos.")
-        return v
+        return RuleValidator.validate_rule_name(v)
     
     @classmethod
-    def from_dict(cls, **kwargs) -> "ParametricRule":
-
-        if not "name" in kwargs:
-            raise ValueError("El campo 'name' es obligatorio en ParametricRule.")
+    def from_dict(cls, data: Dict[str, Any]) -> "ParametricRule":
+        validator = ConditionValidator()
+        factory = ConcreteConditionFactory()
         
-        if "condition" not in kwargs:
-            raise ValueError("El campo 'condition' es obligatorio en ParametricRule.")
+        validator.validate_required_field(data, "name", "ParametricRule")
+        validator.validate_required_field(data, "condition", "ParametricRule")
         
-        if isinstance(kwargs["condition"], dict) and kwargs["condition"].get("type") == "conditional":
-            condition = ConditionalRule.from_dict(**kwargs["condition"])
-
-        elif isinstance(kwargs["condition"], dict) and kwargs["condition"].get("type") == "composite":
-            condition = CompositeCondition.from_dict(**kwargs["condition"])
-
+        condition_data = data["condition"]
+        
+        if isinstance(condition_data, dict):
+            condition_type = condition_data.get("type")
+            
+            if condition_type == "conditional":
+                condition = ConditionalRule.from_dict(condition_data)
+            elif condition_type == "composite":
+                condition = CompositeCondition.from_dict(condition_data)
+            else:
+                condition = factory.create_condition(condition_data)
         else:
-            condition = SimpleCondition(**kwargs["condition"])
+            condition = condition_data
+        
+        return cls(name=data["name"], condition=condition)
 
-        return cls(name=kwargs["name"], condition=condition)
-    
 
+# 6. DEPENDENCY INVERSION: Interfaz para carga de configuración
+class ConfigLoader(ABC):
+    """Interfaz abstracta para cargar configuraciones"""
     
+    @abstractmethod
+    def load(self, source: str) -> Dict[str, Any]:
+        """Carga datos desde una fuente"""
+        pass
+
+
+class YamlConfigLoader(ConfigLoader):
+    """Implementación concreta para YAML"""
+    
+    def load(self, source: str) -> Dict[str, Any]:
+        with open(source, "r", encoding="utf-8") as f:
+            return yaml.safe_load(f)
+
+
 class RulesConfig(BaseModel):
+    """Configuración de reglas con mejor separación de responsabilidades"""
     validations: List[ParametricRule] = None
     
+    @classmethod
+    def from_source(cls, source: str, loader: ConfigLoader) -> "RulesConfig":
+        """Carga configuración usando un loader específico"""
+        raw_data = loader.load(source)
+        return cls._build_from_data(raw_data)
     
     @classmethod
     def from_yaml(cls, yaml_path: str) -> "RulesConfig":
-        with open(yaml_path, 'r', encoding='utf-8') as f:
-            raw = yaml.safe_load(f)
-
-
-        params_raw = raw.get('validations')
+        """Método de conveniencia para YAML (mantiene compatibilidad)"""
+        loader = YamlConfigLoader()
+        return cls.from_source(yaml_path, loader)
+    
+    @classmethod
+    def _build_from_data(cls, raw_data: Dict[str, Any]) -> "RulesConfig":
+        """Construye la configuración desde datos brutos"""
+        params_raw = raw_data.get("validations")
         if not isinstance(params_raw, list):
-            raise ValueError("El archivo YAML debe contener una lista de validaciones bajo la clave 'validations'.")
+            raise ValueError(
+                "El archivo debe contener una lista de validaciones bajo la clave 'validations'."
+            )
         
         validations = []
         for param in params_raw:
-            validations.append(ParametricRule.from_dict(**param))
-            
-
-       
-        return cls(
-            validations=validations
-        )
+            validations.append(ParametricRule.from_dict(param))
+        
+        return cls(validations=validations)
