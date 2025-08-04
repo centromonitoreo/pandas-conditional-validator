@@ -1,8 +1,7 @@
 """Schema layer that converts YAML rule definitions into typed objects."""
 
+from .protocols import ConditionProtocol, ConditionFactory
 from .conditions import (
-    ConditionProtocol,
-    ConditionFactory,
     ConditionValidator,
     BaseCondition,
     ComparisonCondition,
