@@ -9,11 +9,12 @@ objects isolated from other concerns of the project.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Protocol, Union, Literal
+from typing import Any, Dict, List, Protocol, Union, Literal, runtime_checkable
 
 from pydantic import BaseModel
 
 
+@runtime_checkable
 class ConditionProtocol(Protocol):
     """Common interface that all condition schemas must implement."""
 
@@ -24,6 +25,7 @@ class ConditionProtocol(Protocol):
         ...
 
 
+@runtime_checkable
 class ConditionFactory(Protocol):
     """Protocol for objects capable of building conditions from dictionaries."""
 
@@ -135,7 +137,7 @@ class ExpressionCondition(BaseCondition):
         return cls(**data)
 
 
-class ConcreteConditionFactory:
+class ConcreteConditionFactory(ConditionFactory):
     """Factory responsible for instantiating concrete condition schemas."""
 
     _condition_map = {
@@ -153,7 +155,12 @@ class ConcreteConditionFactory:
         if condition_type not in self._condition_map:
             raise ValueError(f"Tipo de condición no soportado: {condition_type}")
         condition_class = self._condition_map[condition_type]
-        return condition_class.from_dict(data)
+        condition = condition_class.from_dict(data)
+        if not isinstance(condition, ConditionProtocol):
+            raise TypeError(
+                f"{condition_class.__name__} debe implementar ConditionProtocol"
+            )
+        return condition
 
 
 # Alias to keep backwards compatibility with previous naming
