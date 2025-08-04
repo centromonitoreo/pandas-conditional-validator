@@ -114,3 +114,34 @@ class NotEqualCondition(ValidatedCondition):
     def _validate_column_exists(self, df: pd.DataFrame, col: str) -> None:
         if col not in df.columns:
             raise ValueError(f"Columna '{col}' no existe en el DataFrame")
+
+
+class NotNullorNotNaNCondition(ValidatedCondition):
+    """Validador para condición de no nulo"""
+
+    def validate_condition(self, df: pd.DataFrame, col: str) -> pd.Series:
+        """Valida si los valores en la columna no son nulos."""
+        self.validate_input(df)
+        self._validate_column_exists(df, col)
+        
+        return df[col].notnull() or df[col].notna()
+    
+    def _validate_column_exists(self, df: pd.DataFrame, col: str) -> None:
+        if col not in df.columns:
+            raise ValueError(f"Columna '{col}' no existe en el DataFrame")
+        
+class IsNullOrIsNaNCondition(ValidatedCondition):
+    """Validador para condición de nulo"""
+
+    def validate_condition(self, df: pd.DataFrame, col: str) -> pd.Series:
+        """Valida si los valores en la columna son nulos."""
+        self.validate_input(df)
+        self._validate_column_exists(df, col)
+        
+        return df[col].isnull() or df[col].isna()
+    
+    def _validate_column_exists(self, df: pd.DataFrame, col: str) -> None:
+        if col not in df.columns:
+            raise ValueError(f"Columna '{col}' no existe en el DataFrame")
+        
+class 

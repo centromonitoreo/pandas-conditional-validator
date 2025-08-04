@@ -28,3 +28,27 @@ validations:
         type: less_than
         col: score
         value: 80
+  
+  - name: ComplexCondition
+    condition:
+      type: composite
+      operator: OR
+      conditions:
+        - type: greater_than
+          col: age
+          value: 60
+        - type: conditional
+          if:
+            type: composite
+            operator: AND
+            conditions:
+              - type: greater_than
+                col: age
+                value: 40
+              - type: less_than
+                col: score
+                value: 90
+          then:
+            type: greater_than
+            col: score
+            value: 90
