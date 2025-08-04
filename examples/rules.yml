@@ -1,0 +1,30 @@
+validations:
+  - name: AgeGreaterThan20
+    condition:
+      type: greater_than
+      col: age
+      value: 20
+
+  - name: ScoreRange
+    condition:
+      type: composite
+      operator: AND
+      conditions:
+        - type: greater_than
+          col: score
+          value: 50
+        - type: less_than
+          col: score
+          value: 100
+
+  - name: HighTempLowScore
+    condition:
+      type: conditional
+      if:
+        type: greater_than
+        col: temperature
+        value: 30
+      then:
+        type: less_than
+        col: score
+        value: 80
