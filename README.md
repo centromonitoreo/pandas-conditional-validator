@@ -2,7 +2,9 @@
 
 Herramienta ligera para validar `DataFrame` de pandas en base a reglas
 definidas en un archivo YAML. Las reglas pueden ser globales o aplicarse
-únicamente a un parámetro (valor de la columna `parametro`).
+únicamente a un parámetro (valor de una columna configurable mediante
+el parámetro `param_col`, que por defecto apunta a la columna
+`parametro`).
 
 ## Configuración de reglas
 
@@ -47,3 +49,19 @@ _global:
 La estructura anterior sigue siendo compatible con la sintaxis previa basada en
 diccionarios, por lo que los archivos existentes continúan funcionando sin
 modificaciones.
+
+## Uso de `validate_dataframe`
+
+Al momento de validar un `DataFrame` se puede indicar explícitamente la
+columna que contiene el nombre del parámetro mediante el argumento
+`param_col`:
+
+```python
+from df_rule_validator.validator import validate_dataframe
+
+fails, df_validado = validate_dataframe(df, rules, param_col="mi_columna")
+```
+
+Si no se proporciona `param_col`, la función utilizará la columna
+`parametro` por defecto.
+

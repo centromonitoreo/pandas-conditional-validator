@@ -1,14 +1,15 @@
 from datetime import datetime
+import json
 
 class ValidationLogger:
     def __init__(self, log_file=None):
         self.log_file = log_file
         self.entries = []
 
-    def log_failure(self, parametro, row, rule):
+    def log_failure(self, parametro, row, rule, param_col="parametro"):
         self.entries.append({
             "timestamp": datetime.utcnow().isoformat(),
-            "parametro": parametro,
+            param_col: parametro,
             "row_data": row,
             "rule_failed": rule
         })
