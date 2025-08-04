@@ -1,5 +1,5 @@
 parametros:
-  - name: Relacion_NP
+  Relacion_NP:
     condition:
       type: conditional
       if:
@@ -21,6 +21,7 @@ parametros:
         type: less_than
         col: valor
         value: 2
+
 _global:
   - type: between
     col: temperatura

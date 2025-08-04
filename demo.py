@@ -9,6 +9,7 @@ df = pd.read_csv("examples/data_example.csv")
 fails, cleaned_df = validate_dataframe(
     df,
     rules,
+    param_col="parametro",
     action="drop_rows",
     log_file="validation_log.jsonl"
 )
