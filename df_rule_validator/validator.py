@@ -46,9 +46,12 @@ def eval_condition(df, cond):
         else:
             raise ValueError(f"Tipo de condición no soportada: {cond['type']}")
 
-def validate_dataframe(df: pd.DataFrame, rules: RulesConfig, action="log_only", log_file=None, param_col="parametro"):
+def validate_dataframe(df: pd.DataFrame, rules: RulesConfig, action="log_only", log_file=None, param_col=None):
     logger = ValidationLogger(log_file)
     fails_list = []
+
+    if param_col is None:
+        raise ValueError("Debe especificarse 'param_col' con el nombre de la columna de parámetros")
 
     # Validar por parámetro
     if rules.parametros:

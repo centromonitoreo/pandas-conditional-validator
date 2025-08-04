@@ -2,21 +2,19 @@
 
 Herramienta ligera para validar `DataFrame` de pandas en base a reglas
 definidas en un archivo YAML. Las reglas pueden ser globales o aplicarse
-únicamente a un parámetro (valor de una columna configurable mediante
-el parámetro `param_col`, que por defecto apunta a la columna
-`parametro`).
+únicamente a un parámetro (valor de una columna cuyo nombre debe
+indicarse mediante el argumento `param_col`).
 
 ## Configuración de reglas
 
-Las reglas se definen en un archivo YAML. A partir de esta versión la sección
-`parametros` acepta una **lista** de objetos, donde cada entrada especifica el
-nombre del parámetro de forma explícita mediante la clave `name` (o `parametro`).
-Esto evita la ambigüedad sobre si el identificador corresponde a una columna o
-al valor de un parámetro dentro del `DataFrame`.
+Las reglas se definen en un archivo YAML. La sección `parametros` utiliza un
+**objeto** donde cada clave corresponde al nombre de la regla mayor. Este nombre
+debe coincidir con los valores de la columna indicada por `param_col` en el
+`DataFrame`.
 
 ```yaml
 parametros:
-  - name: Relacion_NP
+  Relacion_NP:
     condition:
       type: conditional
       if:
@@ -46,13 +44,12 @@ _global:
     max: 35
 ```
 
-La estructura anterior sigue siendo compatible con la sintaxis previa basada en
-diccionarios, por lo que los archivos existentes continúan funcionando sin
-modificaciones.
+Cada clave dentro de `parametros` representa una regla que se aplicará a las
+filas cuyo valor en la columna de parámetros coincida con ella.
 
 ## Uso de `validate_dataframe`
 
-Al momento de validar un `DataFrame` se puede indicar explícitamente la
+Al momento de validar un `DataFrame` se debe indicar explícitamente la
 columna que contiene el nombre del parámetro mediante el argumento
 `param_col`:
 
@@ -62,6 +59,5 @@ from df_rule_validator.validator import validate_dataframe
 fails, df_validado = validate_dataframe(df, rules, param_col="mi_columna")
 ```
 
-Si no se proporciona `param_col`, la función utilizará la columna
-`parametro` por defecto.
+`param_col` es obligatorio; la función no define un valor por defecto.
 

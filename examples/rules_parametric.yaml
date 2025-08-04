@@ -1,5 +1,5 @@
 parametros:
-  - name: Relacion_NP
+  Relacion_NP:
     condition:
       type: conditional
       if:
@@ -22,7 +22,7 @@ parametros:
         col: "{target_column}"  # Parámetro para columna objetivo
         value: "{target_threshold}"
 
-  - name: Temperatura_Rango
+  Temperatura_Rango:
     condition:
       type: between
       col: "{temperature_column}"  # Parámetro para columna de temperatura

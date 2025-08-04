@@ -6,7 +6,7 @@ class ValidationLogger:
         self.log_file = log_file
         self.entries = []
 
-    def log_failure(self, parametro, row, rule, param_col="parametro"):
+    def log_failure(self, parametro, row, rule, param_col):
         self.entries.append({
             "timestamp": datetime.utcnow().isoformat(),
             param_col: parametro,
