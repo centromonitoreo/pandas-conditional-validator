@@ -1,4 +1,4 @@
-from df_rule_validator.services import ValidationService
+from df_rule_validator.conditions_validators import ValidationService
 from df_rule_validator.rules_schema import RulesConfig
 import pandas as pd
 

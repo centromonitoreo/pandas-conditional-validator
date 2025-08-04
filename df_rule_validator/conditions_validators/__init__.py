@@ -2,7 +2,7 @@
 Módulo principal del sistema de validación de reglas para DataFrames
 """
 # Protocols (Interfaces)
-from .conditions_validators import (
+from .protocols import (
     ColumnValidator,
     RangeValidator,
     ExpressionValidator,
@@ -10,7 +10,7 @@ from .conditions_validators import (
 )
 
 # Condiciones base y concretas
-from .conditions_validators import (
+from .conditions import (
     ValidatedCondition,
     GreaterThanCondition,
     LessThanCondition,
@@ -24,25 +24,11 @@ from .conditions_validators import (
 )
 
 # Servicios implementados
-from .conditions_validators import (
+from .services import (
     ValidationService,           # Servicio principal 
     ConditionValidatorFactory,   # Factory pattern
 )
 
-# Esquemas y configuración
-from .rules_schema import (
-    RulesConfig,
-    ParametricRule,
-    ConditionalRule,
-    CompositeCondition as SchemaCompositeCondition,
-    ComparisonCondition,
-    RangeCondition,
-    ExpressionCondition as SchemaExpressionCondition
-)
-
-
-# Alias para compatibilidad con versiones anteriores
-rules_schema_refactored = __import__(__name__ + '.rules_schema', fromlist=[''])
 
 
 __all__ = [
@@ -68,16 +54,4 @@ __all__ = [
     'ValidationService',          # ⭐ Servicio principal - usar este
     'ConditionValidatorFactory',  # Factory pattern
     
-    # Configuración y esquemas
-    'RulesConfig',
-    'ParametricRule',
-    'ConditionalRule',
-    'SchemaCompositeCondition',
-    'ComparisonCondition',
-    'RangeCondition',
-    'SchemaExpressionCondition',
-    
-    
-    # Compatibilidad
-    'rules_schema',
 ]

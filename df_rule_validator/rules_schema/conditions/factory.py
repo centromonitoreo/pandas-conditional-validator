@@ -2,7 +2,7 @@ from __future__ import annotations
 
 """Factory for building concrete condition schema instances."""
 
-from typing import Dict
+from typing import Dict, Any
 
 from ..protocols import ConditionFactory, ConditionProtocol
 from .base import BaseCondition, ConditionValidator

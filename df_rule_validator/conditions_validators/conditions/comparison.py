@@ -144,4 +144,3 @@ class IsNullOrIsNaNCondition(ValidatedCondition):
         if col not in df.columns:
             raise ValueError(f"Columna '{col}' no existe en el DataFrame")
         
-class 

@@ -1,5 +1,5 @@
 from .factory import ConditionValidatorFactory
-from ..rules_schema import RulesConfig  
+from ...rules_schema import RulesConfig  
 
 class ValidationService:
     """Servicio principal que usa Factory para validación"""

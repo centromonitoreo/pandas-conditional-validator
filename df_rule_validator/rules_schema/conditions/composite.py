@@ -1,15 +1,17 @@
 from __future__ import annotations
-from __future__ import annotations
 
 """Composite condition schema."""
 
-from typing import Any, Dict, List, Union, Literal
+from typing import Any, Dict, List, Union, Literal, TYPE_CHECKING
 
 from .base import BaseCondition, ConditionValidator
 from .comparison import ComparisonCondition
 from .range import RangeCondition
 from .expression import ExpressionCondition
 from .factory import ConcreteConditionFactory
+
+if TYPE_CHECKING:
+    from .condition import CondicionalCondition
 
 SimpleCondition = Union[ComparisonCondition, RangeCondition, ExpressionCondition]
 
@@ -19,7 +21,7 @@ class CompositeCondition(BaseCondition):
 
     type: Literal["composite"]
     operator: Literal["AND", "OR"]
-    conditions: List[Union[SimpleCondition, "CompositeCondition"]]
+    conditions: List[Union[SimpleCondition, "CompositeCondition", "CondicionalCondition"]]
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -30,6 +32,9 @@ class CompositeCondition(BaseCondition):
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "CompositeCondition":
+        # Importación diferida para evitar ciclo de importación
+        from .condition import CondicionalCondition
+        
         validator = ConditionValidator()
         factory = ConcreteConditionFactory()
         validator.validate_required_field(data, "operator", "CompositeCondition")
@@ -39,7 +44,9 @@ class CompositeCondition(BaseCondition):
         processed_conditions = []
         for cond_data in data["conditions"]:
             if isinstance(cond_data, dict):
-                if cond_data.get("type") == "composite":
+                if cond_data.get("type") == "conditional":
+                    processed_conditions.append(CondicionalCondition.from_dict(cond_data))
+                elif cond_data.get("type") == "composite":
                     processed_conditions.append(cls.from_dict(cond_data))
                 else:
                     processed_conditions.append(factory.create_condition(cond_data))
@@ -51,6 +58,3 @@ class CompositeCondition(BaseCondition):
             operator=data["operator"],
             conditions=processed_conditions,
         )
-
-
-CompositeCondition.model_rebuild()
