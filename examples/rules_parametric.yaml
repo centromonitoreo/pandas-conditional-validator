@@ -1,0 +1,37 @@
+parametros:
+  Relacion_NP:
+    condition:
+      type: conditional
+      if:
+        operator: AND
+        conditions:
+          - type: greater_than
+            col: "{nitrogen_column}"
+            value: "{nitrogen_threshold}"
+          - operator: OR
+            conditions:
+              - type: less_than
+                col: "{phosphorus_column}"
+                value: "{phosphorus_low}"
+              - type: between
+                col: "{phosphorus_column}"
+                min: "{phosphorus_mid_min}"
+                max: "{phosphorus_mid_max}"
+      then:
+        type: less_than
+        col: "{target_column}"  # Parámetro para columna objetivo
+        value: "{target_threshold}"
+
+  Temperatura_Rango:
+    condition:
+      type: between
+      col: "{temperature_column}"  # Parámetro para columna de temperatura
+      min: "{temp_min}"  # Parámetro para temperatura mínima
+      max: "{temp_max}"  # Parámetro para temperatura máxima
+
+_global:
+  - type: expression
+    expr: "{quality_column} > {quality_threshold}"  # Expresión parametrizada
+  - type: greater_than
+    col: "{count_column}"  # Parámetro para columna de conteo
+    value: 0
