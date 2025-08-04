@@ -46,14 +46,14 @@ def eval_condition(df, cond):
         else:
             raise ValueError(f"Tipo de condición no soportada: {cond['type']}")
 
-def validate_dataframe(df: pd.DataFrame, rules: RulesConfig, action="log_only", log_file=None):
+def validate_dataframe(df: pd.DataFrame, rules: RulesConfig, action="log_only", log_file=None, param_col="parametro"):
     logger = ValidationLogger(log_file)
     fails_list = []
 
     # Validar por parámetro
     if rules.parametros:
         for param, rule in rules.parametros.items():
-            subset = df[df["parametro"] == param]
+            subset = df[df[param_col] == param]
             mask_if, mask_then = None, None
 
             if rule["condition"]["type"] == "conditional":
@@ -65,7 +65,7 @@ def validate_dataframe(df: pd.DataFrame, rules: RulesConfig, action="log_only", 
                 fails = subset[~mask]
 
             for _, row in fails.iterrows():
-                logger.log_failure(param, row.to_dict(), rule)
+                logger.log_failure(param, row.to_dict(), rule, param_col)
                 fails_list.append(row.name)
 
     if rules._global:
@@ -73,7 +73,7 @@ def validate_dataframe(df: pd.DataFrame, rules: RulesConfig, action="log_only", 
             mask = eval_condition(df, rule)
             fails = df[~mask]
             for _, row in fails.iterrows():
-                logger.log_failure(row.get("parametro"), row.to_dict(), rule)
+                logger.log_failure(row.get(param_col), row.to_dict(), rule, param_col)
                 fails_list.append(row.name)
 
     if action == "drop_rows":
