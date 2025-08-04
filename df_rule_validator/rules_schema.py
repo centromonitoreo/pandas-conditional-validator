@@ -313,20 +313,40 @@ class RulesConfig(BaseModel):
         metadata_obj = ConfigMetadata(**metadata) if metadata else None
 
         # Procesar parámetros
-        params = raw.get('parametros') or {}
+        params_raw = raw.get('parametros') or {}
         validated_params = {}
-        for name, rule_dict in params.items():
-            # Extraer metadata de la regla paramétrica
-            rule_metadata = rule_dict.get('metadata')
-            rule_metadata_obj = ValidationMetadata(**rule_metadata) if rule_metadata else None
-            
-            # Procesar condición
-            cond = rule_dict.get('condition')
-            validated = RulesConfig._validate_condition(cond)
-            validated_params[name] = ParametricRule(
-                condition=validated,
-                metadata=rule_metadata_obj
-            )
+
+        # Nueva estructura flexible: permite una lista de reglas con nombre explícito
+        if isinstance(params_raw, list):
+            for item in params_raw:
+                name = item.get('name') or item.get('parametro') or item.get('param')
+                if not name:
+                    raise ValueError("Cada regla paramétrica debe incluir 'name' o 'parametro'")
+
+                rule_metadata = item.get('metadata')
+                rule_metadata_obj = ValidationMetadata(**rule_metadata) if rule_metadata else None
+
+                cond = item.get('condition')
+                validated = RulesConfig._validate_condition(cond)
+                validated_params[name] = ParametricRule(
+                    condition=validated,
+                    metadata=rule_metadata_obj
+                )
+        elif isinstance(params_raw, dict):
+            for name, rule_dict in params_raw.items():
+                # Extraer metadata de la regla paramétrica
+                rule_metadata = rule_dict.get('metadata')
+                rule_metadata_obj = ValidationMetadata(**rule_metadata) if rule_metadata else None
+
+                # Procesar condición
+                cond = rule_dict.get('condition')
+                validated = RulesConfig._validate_condition(cond)
+                validated_params[name] = ParametricRule(
+                    condition=validated,
+                    metadata=rule_metadata_obj
+                )
+        else:
+            raise ValueError("'parametros' debe ser un objeto o una lista de reglas")
 
         # Procesar reglas globales
         globs = raw.get('_global') or []
