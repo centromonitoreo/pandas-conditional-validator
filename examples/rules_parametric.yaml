@@ -1,14 +1,16 @@
-parametros:
+validations:
   - name: Relacion_NP
     condition:
       type: conditional
       if:
+        type: composite
         operator: AND
         conditions:
           - type: greater_than
             col: "{nitrogen_column}"
             value: "{nitrogen_threshold}"
-          - operator: OR
+          - type: composite
+            operator: OR
             conditions:
               - type: less_than
                 col: "{phosphorus_column}"
@@ -25,13 +27,23 @@ parametros:
   - name: Temperatura_Rango
     condition:
       type: between
-      col: "{temperature_column}"  # Parámetro para columna de temperatura
-      min: "{temp_min}"  # Parámetro para temperatura mínima
+      col: "{temperature_column}"
+      min: "{temp_min}"
       max: "{temp_max}"  # Parámetro para temperatura máxima
 
-_global:
-  - type: expression
-    expr: "{quality_column} > {quality_threshold}"  # Expresión parametrizada
-  - type: greater_than
-    col: "{count_column}"  # Parámetro para columna de conteo
-    value: 0
+  - name: Nivel_Caudal
+    condition:
+      type: conditional
+      if:
+        type: composite
+        operator: AND
+        conditions:
+          - type: greater_than
+            col: "{flow_column}"
+            value: "{flow_threshold}"
+      then:
+        type: less_than
+        col: "{target_column}"
+        value: "{target_threshold}"  
+
+
